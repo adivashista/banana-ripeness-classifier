@@ -1,7 +1,32 @@
+# Python
 __pycache__/
 *.pyc
-.vscode/
 
+# Virtual environment
+.venv/
+venv/
+env/
+
+# ML generated files
+*.npy
+*.pkl
+
+# Dataset
+banana/
+dataset/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+# Local dataset
 train/
-test/
 valid/
+test/
+
+# Local generated files
+model_metadata.json
+tempCodeRunnerFile.py

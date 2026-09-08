@@ -36,13 +36,13 @@ for label in classes:
       
         blur = cv2.GaussianBlur(hsv, (5, 5), 0)
 
-        lower_green = np.array([35, 40, 40])
+        lower_green = np.array([35, 40, 40]) # raw
         upper_green = np.array([85, 255, 255])
 
-        lower_yellow = np.array([20, 100, 100])
-        upper_yellow = np.array([35, 255, 255])
+        lower_yellow = np.array([20, 100, 100]) # ripe 
+        upper_yellow = np.array([35, 255, 255]) #overripe
 
-        lower_brown = np.array([5, 50, 20])
+        lower_brown = np.array([5, 50, 20]) #rotten
         upper_brown = np.array([20, 255, 200])
 
        
@@ -58,15 +58,15 @@ for label in classes:
 
         mask = cv2.morphologyEx(
             mask,
-            cv2.MORPH_OPEN,
+            cv2.MORPH_OPEN, #erosion followed by dilation
             kernel
         )
 
        
         contours, _ = cv2.findContours(
             mask,
-            cv2.RETR_EXTERNAL,
-            cv2.CHAIN_APPROX_SIMPLE
+            cv2.RETR_EXTERNAL, #retrieves the outermost countours
+            cv2.CHAIN_APPROX_SIMPLE #stores contour points
         )
 
         banana_mask = np.zeros(mask.shape, dtype=np.uint8)
@@ -184,7 +184,7 @@ for label in classes:
 
         edge_density = np.sum(edges > 0) / (224 * 224)
 
-        # Create Feature Vector
+        
         feature_vector = np.hstack([
 
             mean,

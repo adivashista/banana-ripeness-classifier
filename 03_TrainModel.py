@@ -1,60 +1,92 @@
-import numpy as np
+import json
 import joblib
+import numpy as np
 
+from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
 
+FEATURES_PATH = "features.npy"
+LABELS_PATH = "labels.npy"
+MODEL_PATH = "rf_model.pkl"
+ENCODER_PATH = "label_encoder.pkl"
+METADATA_PATH = "model_metadata.json"
 
-features = np.load("features.npy")
-labels = np.load("labels.npy")
-
-print("Features Shape :", features.shape)
-print("Labels Shape :", labels.shape)
-
-
+features = np.load(FEATURES_PATH)
+labels = np.load(LABELS_PATH)
 
 encoder = LabelEncoder()
-
-labels_encoded = encoder.fit_transform(labels)
-
-print("\nClasses :", encoder.classes_)
-
-
+y = encoder.fit_transform(labels)
 
 X_train, X_test, y_train, y_test = train_test_split(
     features,
-    labels_encoded,
-    test_size=0.2,
+    y,
+    test_size=0.20,
     random_state=42,
-    stratify=labels_encoded
+    stratify=y,
 )
 
-print("\nTraining Samples :", len(X_train))
-print("Testing Samples :", len(X_test))
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
+candidates = {
+    "random_forest": RandomForestClassifier(
+        n_estimators=400,
+        max_depth=None,
+        min_samples_split=2,
+        min_samples_leaf=1,
+        max_features="sqrt",
+        class_weight="balanced",
+        random_state=42,
+        n_jobs=-1,
+        oob_score=True,
+    ),
+    "extra_trees": ExtraTreesClassifier(
+        n_estimators=400,
+        max_depth=None,
+        min_samples_split=2,
+        min_samples_leaf=1,
+        max_features="sqrt",
+        class_weight="balanced",
+        random_state=42,
+        n_jobs=-1,
+    ),
+}
 
+scores = {}
+for name, candidate in candidates.items():
+    cv_scores = cross_val_score(candidate, X_train, y_train, cv=cv, scoring="accuracy", n_jobs=-1)
+    scores[name] = {
+        "cv_mean_accuracy": float(cv_scores.mean()),
+        "cv_std": float(cv_scores.std()),
+    }
+    print(f"{name}: {cv_scores.mean() * 100:.2f}% +/- {cv_scores.std() * 100:.2f}%")
 
-model = RandomForestClassifier(
-    n_estimators=100,
-    random_state=42
-)
+best_name = max(scores, key=lambda name: scores[name]["cv_mean_accuracy"])
+best_model = candidates[best_name]
+best_model.fit(X_train, y_train)
 
-model.fit(X_train, y_train)
+predictions = best_model.predict(X_test)
+test_accuracy = accuracy_score(y_test, predictions)
 
+print(f"\nSelected model: {best_name}")
+print(f"Test accuracy: {test_accuracy * 100:.2f}%")
+print("\nClassification report:\n")
+print(classification_report(y_test, predictions, target_names=encoder.classes_))
 
-train_accuracy = model.score(X_train, y_train)
-test_accuracy = model.score(X_test, y_test)
+joblib.dump(best_model, MODEL_PATH)
+joblib.dump(encoder, ENCODER_PATH)
 
-print("\nTraining Accuracy : {:.2f}%".format(train_accuracy * 100))
-print("Testing Accuracy  : {:.2f}%".format(test_accuracy * 100))
+metadata = {
+    "model": best_name,
+    "classes": encoder.classes_.tolist(),
+    "test_accuracy": float(test_accuracy),
+    "cross_validation": scores,
+    "feature_count": int(features.shape[1]),
+}
+with open(METADATA_PATH, "w", encoding="utf-8") as f:
+    json.dump(metadata, f, indent=2)
 
-
-joblib.dump(model, "rf_model.pkl")
-joblib.dump(encoder, "label_encoder.pkl")
-
-print("\n" + "=" * 50)
-print("MODEL TRAINED SUCCESSFULLY")
-print("=" * 50)
-print("Model saved as : rf_model.pkl")
-print("Label Encoder saved as : label_encoder.pkl")
+print(f"\nSaved model to {MODEL_PATH}")
+print(f"Saved encoder to {ENCODER_PATH}")
+print(f"Saved metadata to {METADATA_PATH}")

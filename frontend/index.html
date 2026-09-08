@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BananaCheck | Ripeness Classifier</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="logo">🍌</span><span>BananaCheck</span></div>
+      <span class="status"><i></i> Model online</span>
+    </header>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">AI-POWERED QUALITY CHECK</p>
+        <h1>Know your banana's<br><span>ripeness in seconds.</span></h1>
+        <p class="subtitle">Upload a photo and the trained computer-vision model will classify it as raw, ripe, overripe, or rotten.</p>
+      </div>
+      <div class="hero-badge">CV + Random Forest</div>
+    </section>
+
+    <section class="grid">
+      <div class="card upload-card">
+        <div id="dropzone" class="dropzone">
+          <div class="upload-icon">↑</div>
+          <h2>Drop your banana image here</h2>
+          <p>or choose a JPG, JPEG, PNG, or BMP file</p>
+          <input id="fileInput" type="file" accept="image/jpeg,image/png,image/bmp" hidden />
+          <button id="browseBtn" class="primary">Choose image</button>
+          <p class="hint">Best results: one banana, good lighting, minimal background clutter.</p>
+        </div>
+        <div id="previewWrap" class="preview-wrap hidden">
+          <img id="preview" alt="Uploaded banana preview" />
+          <button id="changeBtn" class="secondary">Choose another image</button>
+        </div>
+      </div>
+
+      <div class="card result-card">
+        <div class="card-heading"><span>Prediction</span><span id="confidencePill" class="pill hidden"></span></div>
+        <div id="emptyResult" class="empty">
+          <div class="empty-icon">◌</div>
+          <h3>Waiting for an image</h3>
+          <p>Your prediction and class probabilities will appear here.</p>
+        </div>
+        <div id="result" class="hidden">
+          <p class="result-label">Predicted class</p>
+          <h2 id="predictedClass" class="prediction">—</h2>
+          <div class="confidence-row"><span>Confidence</span><strong id="confidence">—</strong></div>
+          <div class="meter"><div id="confidenceBar"></div></div>
+          <h3 class="prob-title">Class probabilities</h3>
+          <div id="probabilities"></div>
+        </div>
+        <div id="loading" class="loading hidden"><div class="spinner"></div><span>Analyzing image…</span></div>
+        <div id="error" class="error hidden"></div>
+      </div>
+    </section>
+
+    <footer>BananaCheck · Computer Vision Classification</footer>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
