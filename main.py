@@ -67,14 +67,27 @@ APP_HTML = r"""
 <header class="top"><div class="brand"><div class="mark">🍌</div><div><div class="eyebrow">Computer Vision Lab</div><h1>BananaIQ</h1><p>Ripeness intelligence, made simple.</p></div></div><nav class="nav"><a href="/docs" target="_blank">API Docs ↗</a><a href="/health" target="_blank">System Health ↗</a></nav></header>
 <section class="hero"><div><div class="eyebrow">AI-powered classification</div><h2>Know your banana.<br><span>Before it goes bad.</span></h2><p>Upload a banana image and let the trained machine-learning pipeline estimate its ripeness stage using handcrafted computer-vision features.</p></div><div class="stats"><div class="stat"><b>4</b><small>Ripeness classes</small></div><div class="stat"><b>103</b><small>Image features</small></div><div class="stat"><b>91.01%</b><small>Test accuracy</small></div></div></section>
 <section class="layout"><article class="card"><div class="cardhead"><div><h3>Inspect an image</h3><div class="muted">JPG, PNG or BMP · Clear single-banana images work best.</div></div><span class="tag">UPLOAD</span></div><div class="drop" id="drop"><div class="dropinner"><div class="uploadicon">↥</div><strong>Drop your image here</strong><small>or select a file from your device</small><label class="choose" for="file">Choose image</label><input id="file" type="file" accept="image/jpeg,image/png,image/bmp"><div class="filename" id="filename">No image selected</div></div></div><img id="preview" class="preview" alt="Selected banana image"><div class="actions"><button class="btn primary" id="predict" disabled>Analyze image →</button><button class="btn" id="clear">Reset</button></div><div class="status" id="status" role="status"></div><div class="notice">Your image is processed by the local FastAPI service. The result is an estimate, not a substitute for human inspection.</div></article>
-<article class="card"><div class="cardhead"><div><h3>Classification report</h3><div class="muted">Prediction confidence and class probabilities.</div></div><span class="tag">MODEL OUTPUT</span></div><div class="empty" id="empty">Your prediction will appear here.<br>Upload an image to begin analysis.</div><div class="result" id="result"><div class="resulttop"><span class="tag">ANALYSIS COMPLETE</span><span class="muted" id="resultfile">—</span></div><div class="resultlabel" id="label">—</div><div class="confidence">Model confidence: <strong id="confidence">—</strong></div><div id="bars"></div></div></article></section>
+<article class="card"><div class="cardhead"><div><h3>Classification report</h3><div class="muted">Prediction confidence and class probabilities.</div></div><span class="tag">MODEL OUTPUT</span></div><div class="empty" id="empty">Your prediction will appear here.<br>Upload an image to begin analysis.</div><div class="result" id="result"><div class="resulttop"><span class="tag">ANALYSIS COMPLETE</span><span class="muted" id="resultfile">—</span></div><div class="resultlabel" id="label">—</div><div class="confidence">Model confidence: <strong id="confidence">—</strong></div><div class="notice" style="margin-bottom:20px;">
+    <strong style="color:#c8f36b;font-size:18px;">
+        Estimated shelf life:
+<span id="daysRemaining">—</span></strong><p id="shelfLifeNote"></p></div>
+<div class="notice" id="shelfLife" style="margin-bottom:20px;">
+    <strong style="color:#c8f36b;font-size:18px;">
+        Estimated shelf life: <span id="daysRemaining">—</span>
+    </strong>
+    <p id="shelfLifeNote"></p>
+</div><div id="bars"></div></div></article></section>
 <footer class="footer"><span>Extra Trees classifier · OpenCV · Scikit-learn</span><span>FastAPI backend · BananaIQ</span></footer>
 </div>
 <script>
 const $=id=>document.getElementById(id);const fileInput=$('file'),drop=$('drop'),preview=$('preview'),filename=$('filename'),predict=$('predict'),clear=$('clear'),status=$('status'),empty=$('empty'),result=$('result');let selected=null;
 function choose(file){if(!file)return;const allowed=['image/jpeg','image/png','image/bmp'];if(!allowed.includes(file.type)){status.textContent='Please select a JPG, PNG, or BMP image.';return}selected=file;filename.textContent=file.name;preview.src=URL.createObjectURL(file);preview.style.display='block';drop.style.display='none';predict.disabled=false;status.textContent='Image ready for analysis.';empty.style.display='flex';result.style.display='none'}
 fileInput.addEventListener('change',e=>choose(e.target.files[0]));['dragenter','dragover'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('active')}));['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('active')}));drop.addEventListener('drop',e=>choose(e.dataTransfer.files[0]));
-predict.addEventListener('click',async()=>{if(!selected)return;const data=new FormData();data.append('file',selected);predict.disabled=true;predict.innerHTML='<span class="spin"></span>Analyzing';status.textContent='Extracting features and running prediction…';try{const response=await fetch('/predict',{method:'POST',body:data});const payload=await response.json();if(!response.ok)throw new Error(payload.detail||'Prediction failed.');$('label').textContent=payload.predicted_class;$('confidence').textContent=Number(payload.confidence).toFixed(2)+'%';$('resultfile').textContent=selected.name;$('bars').innerHTML=Object.entries(payload.probabilities).sort((a,b)=>b[1]-a[1]).map(([name,value])=>'<div class="bar"><div class="bartop"><span>'+name+'</span><b>'+Number(value).toFixed(2)+'%</b></div><div class="track"><div class="fill" style="width:'+Math.min(100,Math.max(0,Number(value)))+'%"></div></div></div>').join('');empty.style.display='none';result.style.display='block';status.textContent='Prediction completed successfully.'}catch(err){status.textContent=err.message}finally{predict.disabled=false;predict.textContent='Analyze image →'}});
+predict.addEventListener('click',async()=>{if(!selected)return;const data=new FormData();data.append('file',selected);predict.disabled=true;predict.innerHTML='<span class="spin"></span>Analyzing';status.textContent='Extracting features and running prediction…';try{const response=await fetch('/predict',{method:'POST',body:data});const payload=await response.json();if(!response.ok)throw new Error(payload.detail||'Prediction failed.');$('label').textContent=payload.predicted_class;$('confidence').textContent=Number(payload.confidence).toFixed(2)+'%';$('daysRemaining').textContent =
+    payload.days_remaining || 'Unavailable';
+
+$('shelfLifeNote').textContent =
+    payload.shelf_life_note || '';$('resultfile').textContent=selected.name;$('bars').innerHTML=Object.entries(payload.probabilities).sort((a,b)=>b[1]-a[1]).map(([name,value])=>'<div class="bar"><div class="bartop"><span>'+name+'</span><b>'+Number(value).toFixed(2)+'%</b></div><div class="track"><div class="fill" style="width:'+Math.min(100,Math.max(0,Number(value)))+'%"></div></div></div>').join('');empty.style.display='none';result.style.display='block';status.textContent='Prediction completed successfully.'}catch(err){status.textContent=err.message}finally{predict.disabled=false;predict.textContent='Analyze image →'}});
 clear.addEventListener('click',()=>{selected=null;fileInput.value='';filename.textContent='No image selected';preview.removeAttribute('src');preview.style.display='none';drop.style.display='flex';predict.disabled=true;status.textContent='';empty.style.display='flex';result.style.display='none';predict.textContent='Analyze image →'});
 </script></body></html>
 """
@@ -432,6 +445,37 @@ def health():
         "classes": encoder.classes_.tolist()
     }
 
+def estimate_shelf_life(predicted_class: str) -> dict:
+    """Rough demo estimate of remaining shelf life at room temperature."""
+
+    stage = predicted_class.lower().replace("_", " ").strip()
+
+    if any(word in stage for word in ["rotten", "decayed"]):
+        minimum, maximum = 0, 0
+        estimate = "Already rotten"
+    elif "overripe" in stage:
+        minimum, maximum = 0, 1
+        estimate = "0-1 days"
+    elif any(word in stage for word in ["unripe", "raw", "green"]):
+        minimum, maximum = 4, 7
+        estimate = "4-7 days"
+    elif any(word in stage for word in ["ripe", "yellow"]):
+        minimum, maximum = 2, 4
+        estimate = "2-4 days"
+    else:
+        minimum, maximum = 1, 3
+        estimate = "1-3 days"
+
+    return {
+        "days_min": minimum,
+        "days_max": maximum,
+        "estimate": estimate,
+        "note": (
+            "Rough estimate at room temperature. Actual shelf life "
+            "depends on storage conditions and the banana's condition."
+        ),
+    }
+
 
 # ============================================================
 # PREDICTION
@@ -515,6 +559,7 @@ async def predict(
                 prediction
             )[0]
         )
+        shelf_life = estimate_shelf_life(str(predicted_label))
 
         # ----------------------------------------------------
         # PROBABILITIES
@@ -556,6 +601,9 @@ async def predict(
                 confidence,
                 2
             ),
+            "days_remaining": shelf_life["estimate"],
+            "shelf_life_note": shelf_life["note"],
+
             "probabilities": class_probabilities
         }
 
